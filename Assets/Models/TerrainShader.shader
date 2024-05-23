@@ -5,7 +5,8 @@ Shader "Custom/TerrainShader"
         u_main_tex   ( "Texture",    2D    ) = "white" {}
         u_height_map ( "Height Map", 2D    ) = "white" {}
         u_height     ( "Height",     float ) = 1
-            }
+        u_scale      ( "Scale",      float ) = 1
+    }
     SubShader
     {
         Tags { "RenderType"="Opaque" }
@@ -34,13 +35,15 @@ Shader "Custom/TerrainShader"
 
             sampler2D u_height_map;
             float     u_height;
+            float     u_scale;
 
 
             v2f vert (appdata v)
             {
                 v2f o;
 
-                o.height    = tex2Dlod( u_height_map, float4( v.uv, 0, 0 ) ).x;
+                float2 uv = ( v.uv - float2( 0.5f, 0.5f ) ) * u_scale * 0.5f + float2( 0.5f, 0.5f );
+                o.height    = tex2Dlod( u_height_map, float4( uv, 0, 0 ) ).x;
                 v.vertex.y += o.height * u_height;
                 o.vertex = UnityObjectToClipPos( v.vertex );
                 o.uv = v.uv;
