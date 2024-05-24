@@ -87,6 +87,8 @@ Material:
     - _TessellationUniform: 1.14
     - _UVSec: 0
     - _ZWrite: 1
+    - u_delta: 0.0004
+    - u_dropoff: 0.5
     - u_height: 1
     - u_scale: 0.5
     m_Colors:

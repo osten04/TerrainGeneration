@@ -106,5 +106,5 @@ float PeriodicNoise(float2 p, float2 rep)
 
 float GetHeight( float2 _world_pos )
 {
-    return ClassicNoise( _world_pos * 8.0f ) * 0.5f + 0.5f;
+    return ClassicNoise( _world_pos * 0.02 ) * 0.5f + 0.5f;
 }

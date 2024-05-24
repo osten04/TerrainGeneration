@@ -5,7 +5,8 @@ Shader "Custom/TerrainShader"
         u_main_tex   ( "Texture",    2D    ) = "white" {}
         u_height_map ( "Height Map", 2D    ) = "white" {}
         u_height     ( "Height",     float ) = 1
-        u_scale      ( "Scale",      float ) = 1
+        u_dropoff    ( "dropoff",    float ) = 0
+        u_delta      ( "delta",      Range(0.001, 0.0001) ) = 0.01
     }
     SubShader
     {
@@ -28,35 +29,79 @@ Shader "Custom/TerrainShader"
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
-                float4 vertex : SV_POSITION;
-                float  height : TEXCOORD1;
+                float4 vertex    : SV_POSITION;
+                float2 uv        : TEXCOORD0;
+                float3 tangent   : TEXCOORD1;
+                float3 bitangent : TEXCOORD2;
+                float3 normal    : TEXCOORD3;
+                float  height    : TEXCOORD4;
+                float4 worldPos  : TEXCOORD5;
             };
 
             sampler2D u_height_map;
             float     u_height;
-            float     u_scale;
+            float     u_dropoff;
+            float     u_delta;
 
+#include "HeightMap.cginc"
 
             v2f vert (appdata v)
             {
                 v2f o;
 
-                float2 uv = ( v.uv - float2( 0.5f, 0.5f ) ) * u_scale * 0.5f + float2( 0.5f, 0.5f );
-                o.height    = tex2Dlod( u_height_map, float4( uv, 0, 0 ) ).x;
-                v.vertex.y += o.height * u_height;
+                o.height = 0.0f;
+                o.worldPos = mul( unity_ObjectToWorld, v.vertex );
+
+                float2 cord = v.uv - float2( 0.5f, 0.5f );
+                if( max( abs( cord.x ), abs( cord.y ) ) * 2.0f + 0.01f > u_dropoff )
+                {
+                    float  dropoff      = max( abs( v.uv.x - 0.5f ), abs( v.uv.y - 0.5f ) ) * 2.0f;
+                    float  delta_height = dropoff - u_dropoff;
+                    
+                    o.height            = GetHeight( o.worldPos.xz );
+                    
+                    float dx    = GetHeight( mul( unity_ObjectToWorld, v.vertex ).xz + float2( u_delta, 0.0f ) ) * u_height + v.vertex.y;
+                    float dy    = GetHeight( mul( unity_ObjectToWorld, v.vertex ).xz + float2( 0.0f, u_delta ) ) * u_height + v.vertex.y;
+                    
+                    float3 vert = v.vertex.xyz;
+                    vert.y = o.height;
+
+                    float3 tangent   = normalize( float3( v.vertex.x + u_delta, dx, v.vertex.z ) - vert );
+                    float3 bitangent = normalize( float3( v.vertex.x, dy, v.vertex.z + u_delta ) - vert );
+                    float3 normal    = normalize( cross( tangent, bitangent ) );
+
+                    v.vertex.y += min( o.height, o.height + ( delta_height ) ) * u_height;
+                    
+
+                    o.tangent   = tangent;
+                    o.bitangent = bitangent;
+                    o.normal    = normal;
+
+                    o.uv = v.uv;
+                }
+                else
+                {
+                    o.uv        = 0.0f;
+                    o.tangent   = 0.0f;
+                    o.bitangent = 0.0f;
+                    o.normal    = 0.0f;
+                    o.height    = 0.0f;
+                }
+
                 o.vertex = UnityObjectToClipPos( v.vertex );
-                o.uv = v.uv;
+                
                 return o;
+
             }
 
             sampler2D u_main_tex;
 
-            fixed4 frag (v2f i) : SV_Target
+            float4 frag (v2f i) : SV_Target
             {
-                fixed4 col = tex2D( u_main_tex, i.uv );
-                col.rgb = col.rgb * i.height;
-                return col;
+                if( i.height == 0.0f )
+                    discard;
+
+                return float4( i.normal, 1.0);
             }
             ENDCG
         }
