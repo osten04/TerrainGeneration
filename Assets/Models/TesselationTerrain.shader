@@ -103,7 +103,7 @@ Shader "Custom/TesselationTerrain"
     // The fragment shader definition.            
     half4 frag(Varyings IN) : SV_Target
     {
-        half4 tex = tex2D(_Noise, IN.uv);
+        half4 tex = half4( 1.0f, 1.0f, 1.0f ,1.0f );
  
         return tex;
     }
