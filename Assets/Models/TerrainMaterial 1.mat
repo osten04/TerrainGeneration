@@ -25,6 +25,9 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
+    - _Occlusion: 0.85
+    - _Sharpness: 1
+    - _Smoothness: 0.681
     - u_dropoff: 0.5
     - u_height: 1
     m_Colors: []

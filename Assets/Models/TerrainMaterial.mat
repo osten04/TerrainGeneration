@@ -14,12 +14,13 @@ Material:
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
-  m_LockedProperties: u_height
+  m_LockedProperties: :m_EnableInstancingVariants :m_DoubleSidedGI :m_CustomRenderQueue
+    _Color _MainTex _Occlusion _Sharpness _Smoothness _Specular u_delta u_height
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -44,8 +45,8 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 10307, guid: 0000000000000000f000000000000000, type: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: 8f130484abb156b44a7ddab48e8b4458, type: 3}
+        m_Scale: {x: 0.1, y: 0.1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 0}
@@ -56,6 +57,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Specular:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -74,12 +79,15 @@ Material:
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _GlossMapScale: 1
-    - _Glossiness: 0.454
+    - _Glossiness: 0
     - _GlossyReflections: 1
-    - _Metallic: 0.054
+    - _Metallic: 0.991
     - _Mode: 0
+    - _Occlusion: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
+    - _Sharpness: 52.7
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -88,14 +96,16 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     - u_blend: 0.6
-    - u_delta: 0.0001
+    - u_delta: 0.3
     - u_dropoff: 0
     - u_height: 64
     - u_rim_power: 8
     - u_scale: 0.25
     - u_sharpness: 128
+    - u_tiling: 0.015
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _Specular: {r: 0, g: 0, b: 0, a: 1}
     - u_rim_color: {r: 1, g: 1, b: 1, a: 0}
   m_BuildTextureStacks: []
