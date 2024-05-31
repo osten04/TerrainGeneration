@@ -19,7 +19,7 @@ Shader "Custom/TerrainShader"
         CGPROGRAM
 
         // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf StandardSpecular vertex:vert
+        #pragma surface surf StandardSpecular fullforwardshadows vertex:vert
 
         // Use shader model 3.0 target, to get nicer looking lighting
         #pragma target 3.0
@@ -31,7 +31,11 @@ Shader "Custom/TerrainShader"
         {
             float3 worldPos;
             float3 normal;
+            float2 texcoord1;
+            float2 texcoord2;
         };
+
+        uniform float4 u_offset;
 
         half   _Occlusion;
         half   _Smoothness;
@@ -50,8 +54,8 @@ Shader "Custom/TerrainShader"
             // put more per-instance properties here
         UNITY_INSTANCING_BUFFER_END(Props)
 
-#include "HeightMap.cginc"
-#include "UnityCG.cginc"
+        #include "HeightMap.cginc"
+        #include "UnityCG.cginc"
 
         void vert (inout appdata_tan v, out Input o ) 
         {
@@ -67,9 +71,12 @@ Shader "Custom/TerrainShader"
                 float4( 0.0f,  0.0f,  0.0f,  1.0f )
             );
 
+
             const float4x4 worldMatrix = mul( scale_matrix, unity_ObjectToWorld );
 
             float3 vertex = mul( worldMatrix, v.vertex );
+
+            float3 offset = u_offset.xyz;
 
             float2 cord    = ( v.texcoord - float2( 0.5f, 0.5f ) ) * 2.0f;
             float  dropoff = max( abs( cord.x ), abs( cord.y ) );
@@ -78,7 +85,7 @@ Shader "Custom/TerrainShader"
             {
                 float  delta_height = dropoff - u_dropoff;
                     
-                vertex.y = GetHeight( vertex.xz ) * u_height;
+                vertex.y = GetHeight( vertex.xz + offset.xz ) * u_height;
                 
                 float3 dx = vertex; 
                 float3 dz = vertex;
@@ -86,16 +93,16 @@ Shader "Custom/TerrainShader"
                 dx.x += u_delta;
                 dz.z += u_delta;
 
-                dx.y = GetHeight( dx.xz ) * u_height;
-                dz.y = GetHeight( dz.xz ) * u_height;
+                dx.y = GetHeight( dx.xz + offset.xz ) * u_height;
+                dz.y = GetHeight( dz.xz + offset.xz ) * u_height;
 
                 float3 tangent   = normalize( dx - vertex );
                 float3 bitangent = normalize( dz - vertex );
                 float3 normal    = normalize( cross( bitangent, tangent ) );
                 
-                o.worldPos = v.vertex;
+                o.worldPos = v.vertex + offset;
 
-                v.vertex.y += min( vertex.y, vertex.y + delta_height );
+                v.vertex.y = min( vertex.y, vertex.y + delta_height );
                 
                 v.tangent  = float4( tangent, 1.0f );
                 v.normal   = normal;
@@ -104,6 +111,7 @@ Shader "Custom/TerrainShader"
             }
             else
             {
+                o.worldPos = v.vertex + offset;
                 v.vertex.y = -0.01f;
             }
         }
@@ -125,7 +133,7 @@ Shader "Custom/TerrainShader"
 			float3 weights = pow( abs( IN.normal ), _Sharpness );
 			weights = weights / ( weights.x + weights.y + weights.z );
 
-            fixed4 col   = col_front * _Color;
+            fixed4 col   = col_top * _Color;
 			col_front *= weights.z;
 			col_side  *= weights.x;
 			col_top   *= weights.y;
@@ -133,8 +141,6 @@ Shader "Custom/TerrainShader"
             //fixed4 col   = ( col_front + col_side + col_top ) * _Color;
             o.Albedo = col.rgb;
             o.Specular = _Specular;
-            //o.Normal = -float3( 0.0f, 1.0f, 0.0f);
-            //o.Normal = IN.normal;
             o.Smoothness = _Smoothness;
             o.Occlusion = _Occlusion;
             o.Alpha = col.a;

@@ -86,8 +86,8 @@ Material:
     - _Occlusion: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _Sharpness: 52.7
-    - _Smoothness: 0
+    - _Sharpness: 1
+    - _Smoothness: 0.807
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -96,9 +96,9 @@ Material:
     - _UVSec: 0
     - _ZWrite: 1
     - u_blend: 0.6
-    - u_delta: 0.3
+    - u_delta: 0.1
     - u_dropoff: 0
-    - u_height: 64
+    - u_height: 77.7
     - u_rim_power: 8
     - u_scale: 0.25
     - u_sharpness: 128
