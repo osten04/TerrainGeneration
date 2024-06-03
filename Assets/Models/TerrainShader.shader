@@ -1,16 +1,16 @@
 Shader "Custom/TerrainShader"
 {
     Properties
-    {
-        u_height     ( "Height",     float ) = 1
-        u_dropoff    ( "dropoff",    float ) = 0
-        u_delta      ( "delta",      Range( 2, 0.0001 ) ) = 0.01
-        _Color ("Color", Color) = (1,1,1,1)
-        _MainTex ("Albedo (RGB)", 2D) = "white" {}
-        _Occlusion ("Occlusion", Range(0,1)) = 0.5
-        _Smoothness ("Smoothness", Range(0,1)) = 0.0
-        _Specular ("Specular", Color) = (1,1,1,1)
-        _Sharpness ("Blend sharpness", Range(1, 64)) = 1
+    {                                     
+        u_height     ( "Height",          float )              = 1
+        u_dropoff    ( "dropoff",         float )              = 0
+        u_delta      ( "delta",           Range( 2, 0.0001 ) ) = 0.01
+        _Color       ( "Color",           Color )              = ( 1,1,1,1 )
+        _MainTex     ( "Albedo (RGB)",    2D )                 = "white" { }
+        _Occlusion   ( "Occlusion",       Range( 0,1 ) )       = 0.5
+        _Smoothness  ( "Smoothness",      Range( 0,1 ) )       = 0.0
+        _Specular    ( "Specular",        Color )              = ( 1, 1, 1,1 )
+        _Sharpness   ( "Blend sharpness", Range( 1, 64 ) )     = 1
     }
     SubShader
     {
@@ -31,11 +31,11 @@ Shader "Custom/TerrainShader"
         {
             float3 worldPos;
             float3 normal;
-            float2 texcoord1;
+            float2 texcoord1 : texcoord1;
             float2 texcoord2;
         };
 
-        uniform float4 u_offset;
+        float4 u_offset;
 
         half   _Occlusion;
         half   _Smoothness;
@@ -57,7 +57,7 @@ Shader "Custom/TerrainShader"
         #include "HeightMap.cginc"
         #include "UnityCG.cginc"
 
-        void vert (inout appdata_tan v, out Input o ) 
+        void vert (inout appdata_full v, out Input o ) 
         {
             UNITY_INITIALIZE_OUTPUT(Input,o);
 
@@ -71,23 +71,23 @@ Shader "Custom/TerrainShader"
                 float4( 0.0f,  0.0f,  0.0f,  1.0f )
             );
 
-
             const float4x4 worldMatrix = mul( scale_matrix, unity_ObjectToWorld );
 
             float3 vertex = mul( worldMatrix, v.vertex );
 
-            float3 offset = u_offset.xyz;
+            float3 offset = -u_offset.xyz * scale;
+            //float3 offset = float3( 0.0f, 0.0f, 0.0f );
 
             float2 cord    = ( v.texcoord - float2( 0.5f, 0.5f ) ) * 2.0f;
             float  dropoff = max( abs( cord.x ), abs( cord.y ) );
 
             if( max( abs( cord.x ), abs( cord.y ) ) + 0.01f > u_dropoff )
             {
-                float  delta_height = dropoff - u_dropoff;
+                float  delta_height = dropoff - u_dropoff * 20.0f;
                     
                 vertex.y = GetHeight( vertex.xz + offset.xz ) * u_height;
                 
-                float3 dx = vertex; 
+                float3 dx = vertex;
                 float3 dz = vertex;
 
                 dx.x += u_delta;

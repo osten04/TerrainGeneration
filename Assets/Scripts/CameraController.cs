@@ -18,6 +18,9 @@ public class CameraController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!Application.isFocused)
+            return;
+
 		float horizontalInput = Input.GetAxis( "Mouse X" );
 		float verticalInput   = Input.GetAxis( "Mouse Y" );
 
@@ -25,8 +28,9 @@ public class CameraController : MonoBehaviour
 		transform.rotation = Quaternion.Euler( m_rotation );
 
 		Vector3 move = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical") ) * Time.deltaTime * 200.0f;
-		
-		transform.position += Quaternion.AngleAxis(m_rotation.y, Vector3.up) * ( Quaternion.AngleAxis(m_rotation.x, Vector3.right) * move );
+
+		m_position += Quaternion.AngleAxis(m_rotation.y, Vector3.up) * ( Quaternion.AngleAxis(m_rotation.x, Vector3.right) * move );
+        transform.position = m_position;
 
 
 	}

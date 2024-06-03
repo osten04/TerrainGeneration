@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 using static UnityEngine.Rendering.DebugUI;
 
@@ -12,6 +13,8 @@ public class GameManager : MonoBehaviour
 	[SerializeField]
 	uint lods;
 	
+	[SerializeField]
+	Material near_material;
 	[SerializeField]
 	Material far_material;
 
@@ -36,22 +39,22 @@ public class GameManager : MonoBehaviour
 			scale *= 2.0f;
 		}
 
-		Vector3 cam_pos = Camera.main.transform.position;
-		planes[0].GetComponent<Renderer>().material.SetVector("u_offset", new(cam_pos.x, 0.0f, cam_pos.z, 0.0f) );
-	}
-
-	void OnPreCull()
-	{
-		Camera cam = Camera.main;
-
-		cam.cullingMatrix = Matrix4x4.Ortho(-99999, 99999, -99999, 99999, 0.001f, 99999) *
-							Matrix4x4.Translate(Vector3.forward * -99999 / 2f) *
-							cam.worldToCameraMatrix;
+		//Vector3 cam_pos = Camera.main.transform.position;
+		//planes[0].GetComponent<Renderer>().material.SetVector("offset", new(cam_pos.x, 0.0f, cam_pos.z, 0.0f) );
 	}
 
 	// Update is called once per frame
 	void Update()
     {
+		Camera cam = Camera.main;
 
-    }
+		cam.cullingMatrix = Matrix4x4.Ortho(-99999, 99999, -99999, 99999, 0.001f, 99999) *
+							Matrix4x4.Translate(Vector3.forward * -99999 / 2f) *
+							cam.worldToCameraMatrix;
+
+		Vector3 cam_pos = cam.transform.position;
+
+		near_material.SetVector("u_offset", cam_pos);
+		far_material.SetVector("u_offset", cam_pos);
+	}
 }
