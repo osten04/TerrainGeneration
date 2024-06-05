@@ -19,7 +19,7 @@ Shader "Custom/TerrainShader"
         CGPROGRAM
 
         // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf StandardSpecular fullforwardshadows vertex:vert
+        #pragma surface surf StandardSpecular addshadow vertex:vert
 
         // Use shader model 3.0 target, to get nicer looking lighting
         #pragma target 3.0
@@ -31,8 +31,7 @@ Shader "Custom/TerrainShader"
         {
             float3 worldPos;
             float3 normal;
-            float2 texcoord1 : texcoord1;
-            float2 texcoord2;
+            float3 offset;
         };
 
         float4 u_offset;
@@ -57,7 +56,7 @@ Shader "Custom/TerrainShader"
         #include "HeightMap.cginc"
         #include "UnityCG.cginc"
 
-        void vert (inout appdata_full v, out Input o ) 
+        void vert (inout appdata_full v, out Input o )
         {
             UNITY_INITIALIZE_OUTPUT(Input,o);
 
@@ -73,19 +72,19 @@ Shader "Custom/TerrainShader"
 
             const float4x4 worldMatrix = mul( scale_matrix, unity_ObjectToWorld );
 
-            float3 vertex = mul( worldMatrix, v.vertex );
+            float3 offset = u_offset.xyz * scale;
+            o.offset      = u_offset.xyz;
 
-            float3 offset = -u_offset.xyz * scale;
-            //float3 offset = float3( 0.0f, 0.0f, 0.0f );
+            float3 vertex = mul( worldMatrix, v.vertex ) + offset;
 
             float2 cord    = ( v.texcoord - float2( 0.5f, 0.5f ) ) * 2.0f;
             float  dropoff = max( abs( cord.x ), abs( cord.y ) );
 
             if( max( abs( cord.x ), abs( cord.y ) ) + 0.01f > u_dropoff )
             {
-                float  delta_height = dropoff - u_dropoff * 20.0f;
+                float  delta_height = dropoff - u_dropoff;
                     
-                vertex.y = GetHeight( vertex.xz + offset.xz ) * u_height;
+                vertex.y = GetHeight( vertex.xz ) * u_height;
                 
                 float3 dx = vertex;
                 float3 dz = vertex;
@@ -93,14 +92,14 @@ Shader "Custom/TerrainShader"
                 dx.x += u_delta;
                 dz.z += u_delta;
 
-                dx.y = GetHeight( dx.xz + offset.xz ) * u_height;
-                dz.y = GetHeight( dz.xz + offset.xz ) * u_height;
+                dx.y = GetHeight( dx.xz ) * u_height;
+                dz.y = GetHeight( dz.xz ) * u_height;
 
                 float3 tangent   = normalize( dx - vertex );
                 float3 bitangent = normalize( dz - vertex );
                 float3 normal    = normalize( cross( bitangent, tangent ) );
                 
-                o.worldPos = v.vertex + offset;
+                o.worldPos = v.vertex;
 
                 v.vertex.y = min( vertex.y, vertex.y + delta_height );
                 
@@ -111,7 +110,7 @@ Shader "Custom/TerrainShader"
             }
             else
             {
-                o.worldPos = v.vertex + offset;
+                o.worldPos = v.vertex;
                 v.vertex.y = -0.01f;
             }
         }
@@ -119,8 +118,9 @@ Shader "Custom/TerrainShader"
         void surf (Input IN, inout SurfaceOutputStandardSpecular o)
         {
             clip( IN.worldPos.y );
+            //clip( IN.screenPos.z );
 
-            float3 uv = IN.worldPos;
+            float3 uv = IN.worldPos + IN.offset;
 
             float2 uv_front = TRANSFORM_TEX( uv.xy, _MainTex );
 			float2 uv_side  = TRANSFORM_TEX( uv.yz, _MainTex );
