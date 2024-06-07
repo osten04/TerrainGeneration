@@ -3,16 +3,56 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float4> Result;
 
 uniform float3 u_offset;
-uniform float3 u_position;
-uniform float3 u_size;
 
-[numthreads(8,8,1)]
+struct grass_output
+{
+    float3 position;
+    float2 facing;
+    float  height;
+    float  width;
+};
+
+struct tile
+{
+    float3 position;
+    float  size;
+};
+
+StructuredBuffer< tile > input;
+
+RWStructuredBuffer< grass_output > Result;
+
+RWBuffer< uint > count;
+
+#define lane_size 8
+
+int rng_state;
+
+uint rand()
+{
+    // Xorshift algorithm from George Marsaglia's paper
+    rng_state ^= (rng_state << 13);
+    rng_state ^= (rng_state >> 17);
+    rng_state ^= (rng_state << 5);
+    return rng_state;
+}
+
+[ numthreads( lane_size, lane_size, 1 ) ]
 void CSMain ( uint2 id : SV_DispatchThreadID )
 {
+    grass_output o;
     
-
-    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+    float2 local = float2( uint2( rand() % 1, rand() % 100 ) ) * 0.01f;
+    o.position   = float3( local.x, 0.0f, local.y ) * input[ 0 ].size + input[ 0 ].position;
+    o.position.y = float( rand() % 100 ) * 0.01f;
+    o.width      = float( rand() % 20  ) * 0.05f;
+    o.height     = float( rand() % 100 ) * 0.01f;
+    
+    
+    uint index = id.x + id.y * lane_size;
+    
+    if ( Result[ index ].height < 0.01f )
+        InterlockedAdd( count[ 0 ], 1 );
 }
