@@ -1,9 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
-
 uniform float3 u_offset;
 
 struct grass_output
@@ -12,6 +9,7 @@ struct grass_output
     float2 facing;
     float  height;
     float  width;
+    uint   hash;
 };
 
 struct tile
@@ -24,35 +22,46 @@ StructuredBuffer< tile > input;
 
 RWStructuredBuffer< grass_output > Result;
 
-RWBuffer< uint > count;
+//RWBuffer< uint > count;
 
-#define lane_size 8
+#define lane_size 32
 
-int rng_state;
+int hash;
 
 uint rand()
 {
     // Xorshift algorithm from George Marsaglia's paper
-    rng_state ^= (rng_state << 13);
-    rng_state ^= (rng_state >> 17);
-    rng_state ^= (rng_state << 5);
-    return rng_state;
+    hash ^= ( hash << 13 );
+    hash ^= ( hash >> 17 );
+    hash ^= ( hash << 5 );
+    return hash;
 }
 
 [ numthreads( lane_size, lane_size, 1 ) ]
 void CSMain ( uint2 id : SV_DispatchThreadID )
 {
+    
     grass_output o;
-    
-    float2 local = float2( uint2( rand() % 1, rand() % 100 ) ) * 0.01f;
-    o.position   = float3( local.x, 0.0f, local.y ) * input[ 0 ].size + input[ 0 ].position;
-    o.position.y = float( rand() % 100 ) * 0.01f;
-    o.width      = float( rand() % 20  ) * 0.05f;
-    o.height     = float( rand() % 100 ) * 0.01f;
-    
     
     uint index = id.x + id.y * lane_size;
     
-    if ( Result[ index ].height < 0.01f )
-        InterlockedAdd( count[ 0 ], 1 );
+    float2 tile_pos = float2( input[0].position.xz ) + u_offset.xz;
+    hash = uint(tile_pos.x) * uint(tile_pos.y) + index;
+    
+    float2 local = float2( uint2( rand() % 100, rand() % 100 ) ) * 0.01f;
+    
+    o.position   = float3( local.x, 0.0f, local.y ) * input[ 0 ].size + input[ 0 ].position;
+    o.facing     = float2( uint2( rand() % 100, rand() % 100 ) ) * 0.02f - float2( 1.0f, 1.0f );
+    o.position.y = 0.0f;
+    o.width      = float( rand() % 20  ) * 0.0025f + 0.05f;
+    o.height     = float( rand() % 100 ) * 0.005f + 0.3f;
+    o.hash       = hash;
+    
+    Result[ index ] = o;
+    
+    //if ( o.height < 0.01f )
+    //{
+    //    InterlockedAdd( count[ 0 ], 1 );
+        
+    //}
 }
