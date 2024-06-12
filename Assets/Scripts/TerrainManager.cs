@@ -24,9 +24,18 @@ public class TerrainManager : MonoBehaviour
 	private float m_tiling;
 
 	public static Vector3 worldoffset { get; private set; }
+	[SerializeField]
+	private float height;
+	public static float terrain_height { get; private set; }
 
-// Start is called before the first frame update
-void Start()
+
+	private void OnEnable()
+	{
+		terrain_height = height;
+	}
+
+	// Start is called before the first frame update
+	void Start()
     {
 		planes = new GameObject[ lods ];
 
@@ -53,6 +62,8 @@ void Start()
 
 		float width = Mathf.Sqrt( ( float )( num_indecies / 6 ) );
 		m_tiling = mesh.bounds.size.x * transform.localScale.x / width;
+		
+		
 	}
 
 	// Update is called once per frame
@@ -73,6 +84,8 @@ void Start()
 
 		near_material.SetVector( "u_offset", worldoffset );
 		far_material.SetVector( "u_offset", worldoffset );
+		near_material.SetFloat( "u_height", terrain_height);
+		far_material.SetFloat( "u_height", terrain_height);
 	}
 
 	private static float mod( float _num, float _mod )

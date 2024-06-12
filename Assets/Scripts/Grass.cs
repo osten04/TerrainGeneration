@@ -1,10 +1,11 @@
 using System;
+using System.Drawing;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
-using System.Runtime.InteropServices;
+using UnityEngine.Rendering;
 using static UnityEngine.GraphicsBuffer;
 
 public class Grass : MonoBehaviour
@@ -22,6 +23,7 @@ public class Grass : MonoBehaviour
 		public float  height;
 		public float  width;
 		public uint   hash;
+		public float  tilt;
 	};
 
 
@@ -42,20 +44,19 @@ public class Grass : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
     {
-		MeshRenderer renderer = GetComponent<MeshRenderer>();
-
 		tile_buffer     = new( 1, Marshal.SizeOf< sTile >(), ComputeBufferType.Structured );
-		instance_buffer = new(32 * 32, Marshal.SizeOf< sGrass >(), ComputeBufferType.Structured );
+		instance_buffer = new( 32 * 32, Marshal.SizeOf< sGrass >(), ComputeBufferType.Structured );
 		index_buffer    = new( GraphicsBuffer.Target.Index, GraphicsBuffer.UsageFlags.LockBufferForWrite, 39, sizeof( uint ) );
 		draw_args       = new( GraphicsBuffer.Target.IndirectArguments, GraphicsBuffer.UsageFlags.None, 1, Marshal.SizeOf<IndirectDrawIndexedArgs>());
 
-		sTile t = new()
-		{
-			position = new float3(0, 0, 0),
-			size     = 1.0f
-		};
 
-		tile_buffer.SetData( new sTile[ 1 ] { t } );
+		tiles = new sTile[4]
+		{
+			new sTile(){ position = new float3( 0,     0, 0 ),     size = 10.0f },
+			new sTile(){ position = new float3( 10.0f, 0, 0 ),     size = 10.0f },
+			new sTile(){ position = new float3( 0,     0, 10.0f ), size = 10.0f },
+			new sTile(){ position = new float3( 10.0f, 0, 10.0f ), size = 10.0f }
+		};
 
 		uint[] indecies = new uint[39]
 		{
@@ -79,13 +80,16 @@ public class Grass : MonoBehaviour
 		IndirectDrawIndexedArgs args = new IndirectDrawIndexedArgs()
 		{
 			baseVertexIndex = 0,
-			instanceCount = 16 * 16,
+			instanceCount = 32 * 32,
 			indexCountPerInstance = 39,
 			startIndex = 0,
 			startInstance = 0
 		};
 
 		draw_args.SetData( new IndirectDrawIndexedArgs[ 1 ]{ args } );
+
+		int id = compute_shader.FindKernel("CSMain");
+		compute_shader.SetBuffer( id, Shader.PropertyToID( "input" ), tile_buffer );
 	}
 
 	private void OnDestroy()
@@ -99,26 +103,30 @@ public class Grass : MonoBehaviour
 	// Update is called once per frame
 	void Update()
     {
-		OnPreRender();
+		
 	}
 
-	private void OnPreRender()
+	void LateUpdate()
 	{
 		int id  = compute_shader.FindKernel( "CSMain" );
-		compute_shader.SetVector( Shader.PropertyToID( "u_offset" ), new Vector4( 0.0f, 0.0f, 0.0f, 0.0f ) );
-		compute_shader.SetBuffer( id, Shader.PropertyToID( "input" ), tile_buffer );
-		compute_shader.SetBuffer( id, Shader.PropertyToID( "Result" ), instance_buffer );
-		compute_shader.Dispatch( id, 32, 32, 1 );
+		RenderParams render_args = new RenderParams( material );
+		
+		compute_shader.SetVector( Shader.PropertyToID( "u_offset" ), TerrainManager.worldoffset );
+		compute_shader.SetFloat( Shader.PropertyToID( "u_height" ), TerrainManager.terrain_height );
 
-		material.SetBuffer( Shader.PropertyToID( "instance_buffer" ), instance_buffer );
-
-		float size = 1.0f;
-
-		RenderParams render_args = new RenderParams(material)
+		for ( int i = 0; i < tiles.Length; i++ )
 		{
-			worldBounds = new( new Vector3( size, size, size ) * 0.5f , new Vector3( size, size, size ) )
-		};
+			tile_buffer.SetData( tiles, i, 0, 1 );
+			compute_shader.SetBuffer( id, Shader.PropertyToID( "Result" ), instance_buffer );
+			compute_shader.Dispatch( id, 32, 32, 1 );
 
-		Graphics.RenderPrimitivesIndexedIndirect( render_args, MeshTopology.Triangles, index_buffer, draw_args, 1, 0 );
+			material.SetBuffer( Shader.PropertyToID( "instance_buffer" ), instance_buffer );
+
+			float size = 32.0f;
+
+			render_args.worldBounds = new( new Vector3( size, 1024, size ) * 0.5f, new Vector3( size, 1024, size ) );
+
+			Graphics.RenderPrimitivesIndexedIndirect( render_args, MeshTopology.Triangles, index_buffer, draw_args, 1, 0 );
+		}
 	}
 }

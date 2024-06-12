@@ -1,8 +1,7 @@
 Shader "Custom/TerrainShader"
 {
     Properties
-    {                                     
-        u_height     ( "Height",          float )              = 1
+    {
         u_dropoff    ( "dropoff",         float )              = 0
         u_delta      ( "delta",           Range( 2, 0.0001 ) ) = 0.01
         _Color       ( "Color",           Color )              = ( 1,1,1,1 )
