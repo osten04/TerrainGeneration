@@ -21,7 +21,7 @@ public class TerrainManager : MonoBehaviour
 
 	private GameObject[] planes;
 
-	private float m_tiling;
+	public static float m_tiling { get; private set; }
 
 	public static Vector3 worldoffset { get; private set; }
 	[SerializeField]
@@ -35,7 +35,7 @@ public class TerrainManager : MonoBehaviour
 	}
 
 	// Start is called before the first frame update
-	void Start()
+	void Awake()
     {
 		planes = new GameObject[ lods ];
 
@@ -61,9 +61,7 @@ public class TerrainManager : MonoBehaviour
 			num_indecies += mesh.GetIndexCount( i );
 
 		float width = Mathf.Sqrt( ( float )( num_indecies / 6 ) );
-		m_tiling = mesh.bounds.size.x * transform.localScale.x / width;
-		
-		
+		m_tiling = mesh.bounds.size.x * transform.localScale.x / width * 3.0f;
 	}
 
 	// Update is called once per frame

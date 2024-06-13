@@ -1,4 +1,4 @@
-Shader "Unlit/HeightMapShader"
+Shader "custom/HeightMapShader"
 {
     Properties
     {
@@ -7,11 +7,11 @@ Shader "Unlit/HeightMapShader"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { "RenderType"="Opaque" "RenderPipeline" = "UniversalRenderPipeline" }
 
         Pass
         {
-            CGPROGRAM
+            HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
 
@@ -45,7 +45,7 @@ Shader "Unlit/HeightMapShader"
                 fixed4 col = GetHeight( i.position );
                 return col;
             }
-            ENDCG
+            ENDHLSL
         }
     }
 }

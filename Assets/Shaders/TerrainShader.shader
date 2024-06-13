@@ -13,137 +13,138 @@ Shader "Custom/TerrainShader"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
-
-        CGPROGRAM
-
-        // Physically based Standard lighting model, and enable shadows on all light types
-        #pragma surface surf StandardSpecular addshadow vertex:vert
-
-        // Use shader model 3.0 target, to get nicer looking lighting
-        #pragma target 3.0
-
-        sampler2D _MainTex;
-        float4    _MainTex_ST;
-
-        struct Input
+        Pass
         {
-            float3 worldPos;
-            float3 normal;
-            float3 offset;
-        };
+            Name "MainPass"
+            Tags { "RenderType"="Opaque" "RenderPipeline" = "UniversalRenderPipeline" }
 
-        float4 u_offset;
+            HLSLPROGRAM
 
-        half   _Occlusion;
-        half   _Smoothness;
-        fixed4 _Color;
-        fixed3 _Specular;
-        float _Sharpness;
+            #pragma vertex vert
+            #pragma fragment frag
 
-        float u_height;
-        float u_dropoff;
-        float u_delta;
+            // Use shader model 3.0 target, to get nicer looking lighting
+            #pragma target 3.0
 
-        // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
-        // See https://docs.unity3d.com/Manual/GPUInstancing.html for more information about instancing.
-        // #pragma instancing_options assumeuniformscaling
-        UNITY_INSTANCING_BUFFER_START(Props)
-            // put more per-instance properties here
-        UNITY_INSTANCING_BUFFER_END(Props)
+            sampler2D _MainTex;
+            float4    _MainTex_ST;
 
-        #include "HeightMap.cginc"
-        #include "UnityCG.cginc"
-
-        void vert (inout appdata_full v, out Input o )
-        {
-            UNITY_INITIALIZE_OUTPUT(Input,o);
-
-            const float scale = 0.02f;
-
-            float4x4 scale_matrix = float4x4
-            (
-                float4( scale, 0.0f,  0.0f,  0.0f ),
-                float4( 0.0f,  scale, 0.0f,  0.0f ),
-                float4( 0.0f,  0.0f,  scale, 0.0f ),
-                float4( 0.0f,  0.0f,  0.0f,  1.0f )
-            );
-
-            const float4x4 worldMatrix = mul( scale_matrix, unity_ObjectToWorld );
-
-            float3 offset = u_offset.xyz * scale;
-            o.offset      = u_offset.xyz;
-
-            float3 vertex = mul( worldMatrix, v.vertex ) + offset;
-
-            float2 cord    = ( v.texcoord - float2( 0.5f, 0.5f ) ) * 2.0f;
-            float  dropoff = max( abs( cord.x ), abs( cord.y ) );
-
-            if( max( abs( cord.x ), abs( cord.y ) ) + 0.01f > u_dropoff )
+            struct Input
             {
-                float  delta_height = dropoff - u_dropoff;
+                float4 vertex   : SV_Position;
+                float3 normal   : texcord0;
+                float3 offset   : texcord1;
+                float3 worldPos : texcord2;
+            };
+
+            float4 u_offset;
+
+            float   _Occlusion;
+            float   _Smoothness;
+            float4 _Color;
+            float3 _Specular;
+            float _Sharpness;
+
+            float u_height;
+            float u_dropoff;
+            float u_delta;
+
+
+            #include "HeightMap.cginc"
+            #include "UnityCG.cginc"
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            Input vert ( in appdata v  )
+            {
+                Input o;
+
+                const float scale = 0.02f;
+
+                float4x4 scale_matrix = float4x4
+                (
+                    float4( scale, 0.0f,  0.0f,  0.0f ),
+                    float4( 0.0f,  scale, 0.0f,  0.0f ),
+                    float4( 0.0f,  0.0f,  scale, 0.0f ),
+                    float4( 0.0f,  0.0f,  0.0f,  1.0f )
+                );
+
+                const float4x4 worldMatrix = mul( scale_matrix, unity_ObjectToWorld );
+
+                float3 offset = u_offset.xyz * scale;
+                o.offset      = u_offset.xyz;
+                o.worldPos    = mul( unity_ObjectToWorld, v.vertex );
+
+                float3 vertex = mul( worldMatrix, v.vertex.xyz ) + offset;
+
+                float2 cord    = ( v.uv - float2( 0.5f, 0.5f ) ) * 2.0f;
+                float  dropoff = max( abs( cord.x ), abs( cord.y ) );
+
+                if( max( abs( cord.x ), abs( cord.y ) ) + 0.01f > u_dropoff )
+                {
+                    float  delta_height = dropoff - u_dropoff;
                     
-                vertex.y = GetHeight( vertex.xz ) * u_height;
+                    vertex.y = GetHeight( vertex.xz ) * u_height;
                 
-                float3 dx = vertex;
-                float3 dz = vertex;
+                    float3 dx = vertex;
+                    float3 dz = vertex;
 
-                dx.x += u_delta;
-                dz.z += u_delta;
+                    dx.x += u_delta;
+                    dz.z += u_delta;
 
-                dx.y = GetHeight( dx.xz ) * u_height;
-                dz.y = GetHeight( dz.xz ) * u_height;
+                    dx.y = GetHeight( dx.xz ) * u_height;
+                    dz.y = GetHeight( dz.xz ) * u_height;
 
-                float3 tangent   = normalize( dx - vertex );
-                float3 bitangent = normalize( dz - vertex );
-                float3 normal    = normalize( cross( bitangent, tangent ) );
+                    float3 tangent   = normalize( dx - vertex );
+                    float3 bitangent = normalize( dz - vertex );
+                    float3 normal    = normalize( cross( bitangent, tangent ) );
                 
-                o.worldPos = v.vertex;
-
-                v.vertex.y = min( vertex.y, vertex.y + delta_height );
+                    v.vertex.y = min( vertex.y, vertex.y + delta_height );
                 
-                v.tangent  = float4( tangent, 1.0f );
-                v.normal   = normal;
+                    o.normal   = normal;
+                }
+                else
+                {
+                    o.normal = float3( 0.0f, 1.0f, 0.0f );
+                    o.vertex.y = -0.01f;
+                }
 
-                o.normal   = normal;
+                o.vertex = UnityObjectToClipPos( v.vertex );
+
+                return o;
             }
-            else
+
+            float4 frag ( Input IN ) : SV_Target
             {
-                o.worldPos = v.vertex;
-                v.vertex.y = -0.01f;
-            }
-        }
+                //if( IN.worldPos.y < 0.0f )
+                //    discard;
 
-        void surf (Input IN, inout SurfaceOutputStandardSpecular o)
-        {
-            clip( IN.worldPos.y );
-            //clip( IN.screenPos.z );
+                float3 uv = IN.worldPos + IN.offset;
 
-            float3 uv = IN.worldPos + IN.offset;
-
-            float2 uv_front = TRANSFORM_TEX( uv.xy, _MainTex );
-			float2 uv_side  = TRANSFORM_TEX( uv.yz, _MainTex );
-			float2 uv_top   = TRANSFORM_TEX( uv.xz, _MainTex );
+                float2 uv_front = TRANSFORM_TEX( uv.xy, _MainTex );
+		        float2 uv_side  = TRANSFORM_TEX( uv.yz, _MainTex );
+		        float2 uv_top   = TRANSFORM_TEX( uv.xz, _MainTex );
 				
-			fixed4 col_front = tex2D( _MainTex, uv_front );
-			fixed4 col_side  = tex2D( _MainTex, uv_side );
-			fixed4 col_top   = tex2D( _MainTex, uv_top );
+		        float4 col_front = tex2D( _MainTex, uv_front );
+		        float4 col_side  = tex2D( _MainTex, uv_side );
+		        float4 col_top   = tex2D( _MainTex, uv_top );
 
-			float3 weights = pow( abs( IN.normal ), _Sharpness );
-			weights = weights / ( weights.x + weights.y + weights.z );
+		        float3 weights = pow( abs( IN.normal ), _Sharpness );
+		        weights = weights / ( weights.x + weights.y + weights.z );
 
-            fixed4 col   = col_top * _Color;
-			col_front *= weights.z;
-			col_side  *= weights.x;
-			col_top   *= weights.y;
+                float4 col   = col_top * _Color;
+		        col_front *= weights.z;
+		        col_side  *= weights.x;
+		        col_top   *= weights.y;
 
-            //fixed4 col   = ( col_front + col_side + col_top ) * _Color;
-            o.Albedo = col.rgb;
-            o.Specular = _Specular;
-            o.Smoothness = _Smoothness;
-            o.Occlusion = _Occlusion;
-            o.Alpha = col.a;
+
+                return col;
+            }
+            ENDHLSL
         }
-        ENDCG
     }
 }

@@ -11,9 +11,9 @@ Shader "Unlit/Grass"
 
         Pass
         {
-            Tags { "LightMode" = "Grass" }
+            Tags { "LightMode" = "Opaque" "RenderPipeline" = "UniversalRenderPipeline" }
 
-            CGPROGRAM
+            HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
 
@@ -95,7 +95,7 @@ Shader "Unlit/Grass"
 
                 return fixed4( col * ( dot( _WorldSpaceLightPos0.xyz, i.normal ) + 1.0f ), 1.0f );
             }
-            ENDCG
+            ENDHLSL
         }
     }
 }
